@@ -2,32 +2,29 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const { MongoClient } = require('mongodb');
 const cors = require('cors');
-require('dotenv').config(); // Ensure you have dotenv for environment variables
 
 const app = express();
 
 // Use the environment variable for the port, or default to 5000 for local development
 const port = process.env.PORT || 5000;
 
-// MongoDB URI from environment variables
-const uri = process.env.MONGODB_URI; // Make sure to set this in your environment variables
+// MongoDB URI
+const uri = 'mongodb+srv://dsatm72:DSATM72dsatm@cluster0.8jygx.mongodb.net/studentPortfolioDB?retryWrites=true&w=majority';
 
 // MongoDB client setup outside route handlers
 let client;
 let studentsCollection;
 let adminCollection;
 
+// Update CORS configuration for Netlify front-end
+const corsOptions = {
+  origin: 'https://your-netlify-site.netlify.app', // Replace with your actual Netlify URL
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allow the relevant HTTP methods
+  allowedHeaders: ['Content-Type'], // Define allowed headers, if necessary
+};
+
 // Middleware
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000', // Allow the Netlify frontend URL or fallback to local dev
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
-// Allow preflight OPTIONS requests for all routes
-app.options('*', cors());
-
-// Body parser middleware
+app.use(cors(corsOptions)); // Use specific CORS options
 app.use(bodyParser.json());
 
 // Mongo connection
@@ -45,6 +42,8 @@ const connectMongoDB = async () => {
 };
 
 // Routes
+
+// Route to submit a form and insert data into the students collection
 app.post('/submit-form', async (req, res) => {
   const formData = req.body;
 
@@ -57,6 +56,7 @@ app.post('/submit-form', async (req, res) => {
   }
 });
 
+// Route to get all students
 app.get('/students', async (req, res) => {
   try {
     const students = await studentsCollection.find().toArray();
@@ -67,13 +67,14 @@ app.get('/students', async (req, res) => {
   }
 });
 
+// Route to get a specific student by USN
 app.get('/students/:usn', async (req, res) => {
   const { usn } = req.params;
 
   try {
     const student = await studentsCollection.findOne({ usn });
     if (student) {
-      delete student.hobbies; // Modify if you want to exclude certain fields
+      delete student.hobbies;
       res.status(200).json(student);
     } else {
       res.status(404).json({ message: "Student not found" });
@@ -84,6 +85,7 @@ app.get('/students/:usn', async (req, res) => {
   }
 });
 
+// Route to get all admin data
 app.get('/admin', async (req, res) => {
   try {
     const admin = await adminCollection.find().toArray();
@@ -94,21 +96,7 @@ app.get('/admin', async (req, res) => {
   }
 });
 
-// Shutdown of MongoDB
-process.on('SIGINT', async () => {
-  console.log('Closing MongoDB connection...');
-  await client.close();
-  process.exit(0);
-});
-
-// Start the server after connecting to MongoDB
-connectMongoDB().then(() => {
-  app.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}`);
-  });
-});
-
-// Admin login and other routes
+// Admin login route
 app.post('/admin', async (req, res) => {
   const { email, password } = req.body;
 
@@ -131,6 +119,7 @@ app.post('/admin', async (req, res) => {
   }
 });
 
+// Route to update a student's information
 app.put('/update-student/:usn', async (req, res) => {
   const { usn } = req.params;
   const updatedData = req.body;
@@ -152,6 +141,7 @@ app.put('/update-student/:usn', async (req, res) => {
   }
 });
 
+// Route to check if a student with a given USN exists
 app.get('/check-usn/:usn', async (req, res) => {
   const { usn } = req.params;
 
@@ -166,4 +156,18 @@ app.get('/check-usn/:usn', async (req, res) => {
     console.error('Error checking USN:', error);
     res.status(500).json({ message: 'Error checking USN' });
   }
+});
+
+// Shutdown MongoDB connection gracefully
+process.on('SIGINT', async () => {
+  console.log('Closing MongoDB connection...');
+  await client.close();
+  process.exit(0);
+});
+
+// Start the server after connecting to MongoDB
+connectMongoDB().then(() => {
+  app.listen(port, () => {
+    console.log(`Server running on http://localhost:${port}`);
+  });
 });
