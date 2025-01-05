@@ -2,14 +2,15 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const { MongoClient } = require('mongodb');
 const cors = require('cors');
+require('dotenv').config(); // Ensure you have dotenv for environment variables
 
 const app = express();
 
 // Use the environment variable for the port, or default to 5000 for local development
 const port = process.env.PORT || 5000;
 
-// MongoDB URI
-const uri = 'mongodb+srv://dsatm72:DSATM72dsatm@cluster0.8jygx.mongodb.net/studentPortfolioDB?retryWrites=true&w=majority';
+// MongoDB URI from environment variables
+const uri = process.env.MONGODB_URI; // Make sure to set this in your environment variables
 
 // MongoDB client setup outside route handlers
 let client;
@@ -17,7 +18,16 @@ let studentsCollection;
 let adminCollection;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000', // Allow the Netlify frontend URL or fallback to local dev
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Allow preflight OPTIONS requests for all routes
+app.options('*', cors());
+
+// Body parser middleware
 app.use(bodyParser.json());
 
 // Mongo connection
@@ -34,7 +44,7 @@ const connectMongoDB = async () => {
   }
 };
 
-// Routes (no changes needed here)
+// Routes
 app.post('/submit-form', async (req, res) => {
   const formData = req.body;
 
@@ -63,7 +73,7 @@ app.get('/students/:usn', async (req, res) => {
   try {
     const student = await studentsCollection.findOne({ usn });
     if (student) {
-      delete student.hobbies;
+      delete student.hobbies; // Modify if you want to exclude certain fields
       res.status(200).json(student);
     } else {
       res.status(404).json({ message: "Student not found" });
@@ -98,7 +108,7 @@ connectMongoDB().then(() => {
   });
 });
 
-// Admin login and other routes (no changes needed here)
+// Admin login and other routes
 app.post('/admin', async (req, res) => {
   const { email, password } = req.body;
 
