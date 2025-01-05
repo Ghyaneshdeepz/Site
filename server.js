@@ -18,9 +18,10 @@ let adminCollection;
 
 // Update CORS configuration for Netlify front-end
 const corsOptions = {
-  origin: 'https://your-netlify-site.netlify.app', // Replace with your actual Netlify URL
+  origin: 'https://moonlit-faun-4ad731.netlify.app', // Replace with your actual Netlify URL
   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allow the relevant HTTP methods
-  allowedHeaders: ['Content-Type'], // Define allowed headers, if necessary
+  allowedHeaders: ['Content-Type', 'Authorization'], // Define allowed headers, if necessary
+  credentials: true, // Allow credentials if needed (cookies, tokens)
 };
 
 // Middleware
